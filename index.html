@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Alocação de Serviços Interativa</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #eef3f9;
+        font-family: "Segoe UI", sans-serif;
+        padding: 20px;
+        display: flex;
+        gap: 40px;
+      }
+
+      #controls {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      label,
+      input {
+        font-size: 16px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 4px;
+        border: 4px solid #333;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .cell {
+        width: 80px;
+        height: 80px;
+        border: 1px solid #aaa;
+        gap: 4px;
+        display: flex;
+        position: relative;
+        justify-content: center;
+        align-items: center;
+        background-color: #fafafa;
+        overflow: hidden;
+      }
+
+      .stack {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        gap: 2px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .icon {
+        font-size: 26px;
+        cursor: grab;
+      }
+
+      .user {
+        color: #2196f3;
+      }
+      .server {
+        color: #4caf50;
+      }
+      .service {
+        color: #00bcd4;
+        font-size: 16px;
+      }
+
+      .legend,
+      .palette {
+        background-color: #fff;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .palette {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .draggable {
+        font-size: 24px;
+        padding: 8px;
+        background-color: #f0f0f0;
+        border-radius: 6px;
+        border: 2px dashed #ccc;
+        text-align: center;
+        cursor: grab;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <div>
+        <label for="rows">Linhas:</label>
+        <input type="number" id="rows" value="6" min="1" />
+        <label for="cols">Colunas:</label>
+        <input type="number" id="cols" value="6" min="1" />
+        <button onclick="generateGrid()">Gerar Grade</button>
+      </div>
+
+      <div class="palette">
+        <div><strong>Arraste para a grade:</strong></div>
+        <div class="draggable" draggable="true" data-type="user">
+          <i class="fas fa-user user"></i> Usuário
+        </div>
+        <div class="draggable" draggable="true" data-type="server">
+          <i class="fas fa-server server"></i> Servidor
+        </div>
+        <div class="draggable" draggable="true" data-type="service">
+          <i class="fas fa-microchip service"></i> Serviço
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><i class="fas fa-user user"></i> Usuário: realiza requisições para um serviço</div>
+        <div><i class="fas fa-server server"></i> Servidor de Borda: recurso computacional local</div>
+        <div><i class="fas fa-microchip service"></i> Serviço: aplicação que pode ser alocada em um servidor</div>
+      </div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+
+    <script>
+      function generateGrid() {
+        const rows = parseInt(document.getElementById("rows").value);
+        const cols = parseInt(document.getElementById("cols").value);
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+        grid.style.gridTemplateRows = `repeat(${rows}, 80px)`;
+        grid.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+
+        for (let i = 0; i < rows * cols; i++) {
+          const cell = document.createElement("div");
+          cell.classList.add("cell");
+
+          const stack = document.createElement("div");
+          stack.classList.add("stack");
+          cell.appendChild(stack);
+
+          cell.addEventListener("dragover", (e) => e.preventDefault());
+          cell.addEventListener("drop", (e) => handleDrop(e, stack));
+
+          grid.appendChild(cell);
+        }
+      }
+
+      document.querySelectorAll(".draggable").forEach((el) => {
+        el.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", e.target.dataset.type);
+        });
+      });
+
+      function handleDrop(e, stack) {
+        const type = e.dataTransfer.getData("text/plain");
+        const cell = stack.parentElement;
+        const hasUser = cell.querySelector(".fa-user");
+        const hasServer = cell.querySelector(".fa-server");
+
+        if ((type === "user" && hasUser) || (type === "server" && hasServer)) {
+          alert("Só é permitido um usuário e um servidor por célula.");
+          return;
+        }
+
+        if (type === "service" && !hasServer) {
+          alert("Não é possível alocar um serviço sem um servidor presente.");
+          return;
+        }
+
+        const icon = document.createElement("i");
+        icon.classList.add("fas", "icon");
+
+        switch (type) {
+          case "user":
+            icon.classList.add("fa-user", "user");
+            cell.insertBefore(icon, stack);
+            break;
+          case "server":
+            icon.classList.add("fa-server", "server");
+            cell.appendChild(icon);
+            break;
+          case "service":
+            icon.classList.add("fa-microchip", "service");
+            stack.appendChild(icon);
+            break;
+        }
+
+        icon.onclick = () => {
+          icon.remove();
+          if (icon.classList.contains("fa-server")) {
+            stack
+              .querySelectorAll(".fa-microchip")
+              .forEach((serviceIcon) => serviceIcon.remove());
+          }
+        };
+      }
+
+      window.onload = () => {
+        generateGrid();
+      };
+    </script>
+  </body>
+</html>
